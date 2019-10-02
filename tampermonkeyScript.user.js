@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         SpotifyAdsMuter
-// @version      0.1
+// @version      0.2
 // @description  mute sound during played ads in spotify
 // @author       RonU
 // @match        https://open.spotify.com/*
@@ -14,6 +14,7 @@
 const NEXT_TITLE = "Next";
 const MUTE_ARIA_LABEL = "Mute";
 const UNMUTE_ARIA_LABEL = "Unmute";
+const ENABLED_VOL_BAR_CLASS = "volume-bar";
 
 var g_artificialMute = false;
 
@@ -41,6 +42,7 @@ function applyArtificialMute() {
 function applyArtificialUnmute() {
     const unmuteButtons = jQuery('[aria-label='+UNMUTE_ARIA_LABEL+']');
     for (var i = 0; i < unmuteButtons.length; i++) {
+        unmuteButtons[i].parentElement.className = ENABLED_VOL_BAR_CLASS;
         unmuteButtons[i].click();
         g_artificialMute = false;
         return;
