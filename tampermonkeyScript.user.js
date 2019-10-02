@@ -1,6 +1,5 @@
 // ==UserScript==
 // @name         SpotifyAdsMuter
-// @namespace    http://tampermonkey.net/
 // @version      0.1
 // @description  mute sound during played ads in spotify
 // @author       RonU
