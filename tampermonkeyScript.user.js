@@ -1,11 +1,12 @@
 // ==UserScript==
-// @name         SpotifyAdsMuter
-// @version      0.2
-// @description  mute sound during played ads in spotify
-// @author       RonU
-// @match        https://open.spotify.com/*
-// @grant        none
-// @require      https://code.jquery.com/jquery-3.4.1.min.js
+// @name         SpotifyAdsMuter
+// @version      0.5
+// @description  mute sound during played ads in spotify
+// @author       RonU
+// @match        https://open.spotify.com/*
+// @grant        none
+// @require      https://code.jquery.com/jquery-3.4.1.min.js
+// @run-at document-end
 // ==/UserScript==
 
 /* globals jQuery*/
@@ -14,59 +15,64 @@
 const NEXT_TITLE = "Next";
 const MUTE_ARIA_LABEL = "Mute";
 const UNMUTE_ARIA_LABEL = "Unmute";
-const ENABLED_VOL_BAR_CLASS = "volume-bar";
+const UNIQUE_MUTE_BUTTON_ID = "SpotifyAdsMuter314159265358979323846264338";
 
 var g_artificialMute = false;
-var g_muteLastClassName = "";
+var g_muteUnmuteParentBackup = null;
 
 function isAdBeingPlayed() {
-    const nextButtons = jQuery('[title='+NEXT_TITLE+']');
-    for (var i = 0; i < nextButtons.length; i++) {
-        if (nextButtons[i].disabled) { // advertisement (if end of queue, it jumps to beginning)
-            return true;
-        }
-    }
-    return false;
+    const nextButtons = jQuery('[title='+NEXT_TITLE+']');
+    for (var i = 0; i < nextButtons.length; i++) {
+        if (nextButtons[i].disabled) { // advertisement (if end of queue, it jumps to beginning)
+            console.log('ad identified'); // TODO delete
+            return true;
+        }
+    }
+    return false;
+}
+
+function injectMuteButtonID() {
+    var muteUnmuteButtons = jQuery('[aria-label='+MUTE_ARIA_LABEL+']');
+    if (muteUnmuteButtons.length == 0) {
+        muteUnmuteButtons = jQuery('[aria-label='+UNMUTE_ARIA_LABEL+']');
+    }
+    muteUnmuteButtons[0].id = UNIQUE_MUTE_BUTTON_ID; // the first one is enough
+    g_muteUnmuteParentBackup = muteUnmuteButtons[0].parent
 }
 
 
 function isMuteOn() {
-    const unmuteButtons = jQuery('[aria-label='+UNMUTE_ARIA_LABEL+']');
-    return (unmuteButtons.length == 0); // if unmute buttons are shown then mute is on
+    const unmuteButtons = jQuery('[aria-label='+UNMUTE_ARIA_LABEL+']');
+    return (unmuteButtons.length > 0); // if unmute buttons are shown then mute is on
 }
 
 
-function applyArtificialMute() {
-    const muteButtons = jQuery('[aria-label='+MUTE_ARIA_LABEL+']');
-    for (var j = 0; j < muteButtons.length; j++) {
-        muteButtons[j].click();
-        g_artificialMute = true;
-        g_muteLastClassName = muteButtons[j].className;
-        return;
-    }
+function artificialButtonClick() {
+    var muteUnmuteButton = jQuery('#'+UNIQUE_MUTE_BUTTON_ID);
+    if (muteUnmuteButton.length == 0) {
+        injectMuteButtonID();
+        console.log('muteBtn injected'); // TODO delete
+        muteUnmuteButton = jQuery('#'+UNIQUE_MUTE_BUTTON_ID);
+    }
+    muteUnmuteButton[0].click();
+    g_artificialMute = !g_artificialMute;
 }
 
-function applyArtificialUnmute() {
-    if (!isMuteOn()) { // already unmuted
-        g_artificialMute = false;
-    } else {
-        const unmuteButtons = jQuery('[aria-label='+UNMUTE_ARIA_LABEL+']');
-        for (var i = 0; i < unmuteButtons.length; i++) {
-            unmuteButtons[i].parentElement.className = ENABLED_VOL_BAR_CLASS;
-            unmuteButtons[i].click();
-            unmuteButtons[i].setAttribute('aria-label', MUTE_ARIA_LABEL);
-            unmuteButtons[i].className = g_muteLastClassName;
-            return;
-        }
-    }
-}
 
 function executeAdsTestAndVolControl() {
-    if (isAdBeingPlayed() && !isMuteOn()) {
-        applyArtificialMute();
-    } else if (g_artificialMute) { // no ad but artificially muted
-        applyArtificialUnmute();
-    }
+    if ((isAdBeingPlayed() && !isMuteOn()) || (g_artificialMute)) {
+        // if ad is being played and unmuted, or no ad is being played but
+        // spotify is artificially muted because of previous ad.
+        artificialButtonClick();
+        console.log('artificially clicked.'); // TODO delete
+    }
 }
+
+
+(function() {
+    setTimeout(function(){
+        injectMuteButtonID();
+    }, 10000);
+})();
 
 setInterval(executeAdsTestAndVolControl, 500);
